@@ -11,8 +11,8 @@ MODULE Module1
     ! Version: 1.0
     !
     !***********************************************************
-    
-    
+
+
     !***********************************************************
     !
     ! Procedure main
@@ -20,9 +20,9 @@ MODULE Module1
     !   This is the entry point of your program
     !
     !***********************************************************
-    CONST robtarget pHOME:=[[0, 0, 0],[1, 0, 0,0],[1,0,0,0],[11,12.3,9E9,9E9,9E9,9E9]];
-    CONST robtarget p10:=[[0, 0, 0],[10, 0, 0,0],[1,0,0,0],[11,12.3,9E9,9E9,9E9,9E9]];
-    
+    !CONST robtarget pHOME:=[[0, 0, 0],[1, 0, 0,0],[1,0,0,0],[11,12.3,9E9,9E9,9E9,9E9]];
+    !CONST robtarget p10:=[[0, 0, 0],[10, 0, 0,0],[1,0,0,0],[11,12.3,9E9,9E9,9E9,9E9]];
+
     PROC main()
         !Add your code here
         MoveL pHOME,v1000,fine,tool0; !go to home
