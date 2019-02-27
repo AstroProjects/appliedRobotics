@@ -18,8 +18,8 @@ MODULE ObelixMov
 	!CONST robtarget pOvenRef :=[[-400.60,632.71,501.69],[0.350259,-0.742904,0.298477,0.486132],[1,-1,-1,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
     CONST robtarget pOvenRef :=[[-200,600,600],[0.697685,-0.00154316,0.716328,-0.0103435],[-1,-1,-1,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
     
-    CONST num convSecOffset{3} := [0, 0, 100];   !security offset [x, y, z]
-    CONST num manSecOffset{3} := [0, 0, 100];    !security offset [x, y, z]
+    CONST num convSecOffset{3} := [0, 0, -100];   !security offset [x, y, z]
+    CONST num manSecOffset{3} := [0, 0, -100];    !security offset [x, y, z]
     CONST num ovenSecOffset{3} := [0, 100, 0];   !security offset [x, y, z]
     
     CONST num convOffset{3} := [0, 50, 0];        !offset between 2 conv [x, y, z]
