@@ -29,10 +29,9 @@ MODULE ObelixMov
     VAR robtarget pConv{2,2};
     VAR robtarget pOven{2,3,3};
     VAR robtarget pMan{2};
-    CONST robtarget pHome_2:=[[507.9,-6.43,715.02],[0.697685,-0.00154316,0.716328,-0.0103435],[-1,-1,-1,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
     
-    ! Flexpendant var
-    VAR num numTest;
+    ! Flexpendant vars
+    VAR num numChoc{2,2}; !{1,*} num produced; {2,*} Total to produce
     VAR num chocType;
     
     
@@ -44,9 +43,6 @@ MODULE ObelixMov
     !
     !***********************************************************
     PROC main()
-        TPWrite "Hello ABB";
-        TPReadNum numTest, "Chocolate type?"; 
-        TPReadFK chocType, "Witch type?", "TP1", "TP2", stEmpty,stEmpty,stEmpty;
         MoveJ pHome, v1000, fine, tool0;
         !-----------------------------------
         
@@ -55,7 +51,16 @@ MODULE ObelixMov
         defineConvPts pConvRef, convOffset, convSecOffset, pConv;
         defineOvenPts pOvenRef, ovenMatOffset, ovenSecOffset, pOven;
         
-        man2conv pMan, pConv, 2;
+        ! 1. Job Configuration
+        TPErase;
+        TPWrite "Welcome to the chocolate factory";
+        TPReadNum numChoc{2,1}, "How many chocolate 1 items will be produced?";
+        TPReadNum numChoc{2,2}, "How many chocolate 2 items will be produced?";
+        updateDisp numChoc;
+        
+        ! 2. Start the job
+        triggerSeq chocType, numChoc;
+        
         ! TEST. Movement Tests
         movTest pConv, pOven, pMan;
         
@@ -130,20 +135,67 @@ MODULE ObelixMov
           
     ENDPROC
     
+    !***********************************************************
     PROC man2conv(robtarget pMan{*}, robtarget pConv{*,*}, num iConv)
             
-        MoveJ pMan{1}, v1000, fine, tool0;
-        MoveJ pMan{2}, v200, fine, tool0;
-        MoveJ pMan{1}, v200, fine, tool0;
+        !MoveJ pMan{1}, v1000, fine, tool0;
+        !MoveJ pMan{2}, v200, fine, tool0;
+        !MoveJ pMan{1}, v200, fine, tool0;
+        MoveS pMan, v1000, v200, fine, tool0;
         
-        MoveJ pConv{1, iConv}, v1000, fine, tool0;
-        MoveJ pConv{2, iConv}, v200, fine, tool0;
-        MoveJ pConv{1, iConv}, v200, fine, tool0;
+        !MoveJ pConv{1, iConv}, v1000, fine, tool0;
+        !MoveJ pConv{2, iConv}, v200, fine, tool0;
+        !MoveJ pConv{1, iConv}, v200, fine, tool0;
+        MoveS [pConv{1,iConv}, pConv{2,iConv}], v1000, v200, fine, tool0;
         
         !TODO: set timer for the dryer or wait 5 sections (Idle time)
         !TODO: return to pHome?
           
     ENDPROC
+    
+    !***********************************************************
+    PROC triggerSeq(INOUT num type, INOUT num n{*,*})
+        TPReadFK type, "A chocolate figure has arrived to the station. Which type of chocolate is?", "TP1", "TP2", stEmpty,stEmpty,stEmpty;
+        
+        !Update chocolate counters
+        TEST type
+            CASE 1:
+                n{1,1} := n{1,1} + 1;
+                ! do more things?
+            CASE 2:
+                n{1,2} := n{1,2} + 1;
+                ! do more things?
+            DEFAULT:
+                !do nothing
+        ENDTEST
+        
+        !Erase the contents of the display and print the numbers of figures completed
+        updateDisp n;
+        
+        !TODO: Trigger the program
+    ENDPROC
+    
+    !***********************************************************
+    PROC updateDisp(num n{*,*})
+        TPErase;
+        
+        TPWrite "CHOCOLATE TYPE 1:";
+        TPWrite "   Produced = ", \Num := n{1,1};
+        TPWrite "   Total = ", \Num := n{2,1};
+        TPWrite "CHOCOLATE TYPE 2:";
+        TPWrite "   Produced = ", \Num := n{1,2};
+        TPWrite "   Total = ", \Num := n{2,2};
+    ENDPROC
+    
+    !***********************************************************
+    PROC MoveS(robtarget p{*}, speeddata vFree, speeddata vSec, zonedata z, PERS tooldata t)
+            
+        MoveJ p{1}, vFree, z, t;
+        MoveJ p{2}, vSec, z, t;
+        MoveJ p{1}, vSec, z, t;
+          
+    ENDPROC
+    
     !***********************************************************
     PROC movTest(robtarget pConv{*,*}, robtarget pOven{*,*,*}, robtarget pMan{*})
         ! Perform diferent movement tests
@@ -163,6 +215,9 @@ MODULE ObelixMov
                 oven2man pOven, pMan, i, j;
             ENDFOR
         ENDFOR
+        
+        !man2conv
+        man2conv pMan, pConv, 2;
         
         !oven2home
         FOR i FROM 1 TO 3 DO
