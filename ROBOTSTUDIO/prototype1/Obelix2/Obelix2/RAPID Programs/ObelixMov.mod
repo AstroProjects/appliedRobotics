@@ -13,7 +13,7 @@ MODULE ObelixMov
     !***********************************************************
     
     CONST robtarget pHome    :=[[507.9,-6.43,715.02],[0.697685,-0.00154316,0.716328,-0.0103435],[-1,-1,-1,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
-	CONST robtarget pConvRef :=[[-115.85074989,-570.588098876,463.263482769],[0.021373544,0.101609161,0.8695055,-0.482886048],[-2,0,-2,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
+	CONST robtarget pConvRef :=[[-109.516885301,-504.792720334,376.620999376],[0.243054291,0.717735721,0.578717345,-0.301440343],[-2,0,-1,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
 	CONST robtarget pManRef  :=[[580,42.299990184,552.739936658],[0.51893094,-0.131239024,0.843441139,-0.045760712],[0,-1,-1,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
     CONST robtarget pOvenRef :=[[-291.029880742,659.908842444,594.297264732],[0.363486279,-0.625201176,0.407577419,0.55756781],[1,0,-1,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
     
@@ -34,6 +34,9 @@ MODULE ObelixMov
     VAR num numChoc{2,2}; !{1,*} num produced; {2,*} Total to produce
     VAR num chocType;
     
+    !Interrupts
+    !VAR intnum pushBot;
+    
     
     !***********************************************************
     !
@@ -44,6 +47,7 @@ MODULE ObelixMov
     !***********************************************************
     PROC main()
         MoveJ pHome, v1000, fine, tool0;
+        MoveJ pConvRef, v1000, fine, tool0;
         !-----------------------------------
         
         ! 0. Points definition
@@ -52,14 +56,23 @@ MODULE ObelixMov
         defineOvenPts pOvenRef, ovenMatOffset, ovenSecOffset, pOven;
         
         ! 1. Job Configuration
-        TPErase;
-        TPWrite "Welcome to the chocolate factory";
-        TPReadNum numChoc{2,1}, "How many chocolate 1 items will be produced?";
-        TPReadNum numChoc{2,2}, "How many chocolate 2 items will be produced?";
-        updateDisp numChoc;
+        !TPErase;
+        !TPWrite "Welcome to the chocolate factory";
+        !TPReadNum numChoc{2,1}, "How many chocolate 1 items will be produced?";
+        !TPReadNum numChoc{2,2}, "How many chocolate 2 items will be produced?";
+        !updateDisp numChoc;
         
         ! 2. Start the job
-        triggerSeq chocType, numChoc;
+        !triggerSeq chocType, numChoc;
+        
+        ! 3. Connect interrupts
+        !CONNECT pushBot WITH iMove;
+        
+        !WHILE n{2,1}+n{2,2}>n{1,1}+n{1,2} DO
+            
+        !ENDWHILE
+        
+        
         
         ! TEST. Movement Tests
         movTest pConv, pOven, pMan;
