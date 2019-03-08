@@ -36,7 +36,7 @@ MODULE ObelixMov
     ! +---------+------------------------------------------------+
     
     VAR num taskTimming{4} := [0+30, 60, 120, 5+30]; ! time in seconds for each task
-    VAR num taskQueue{30,3}; ![Task id, completion time, opt_par]
+    VAR num taskQueue{2,3}; ![Task id, completion time, opt_par]
     
     VAR bool occOven{9}; ! idx computed as (i-1)*3+j
     
@@ -82,6 +82,7 @@ MODULE ObelixMov
         ! 2. Connect interrupts
         CONNECT pushInt WITH iMove;
         ISignalDI di0,1,pushInt;
+        
         
         ! 3. Start the job
         !while produced < total
@@ -226,25 +227,37 @@ MODULE ObelixMov
                      
         VAR num iOven;
         VAR num jOven;
+        VAR bool found := FALSE;
         VAR num newTask{3}; ![taskID, time, opt]
         
         VAR num currTime;
         currTime := GetTime(\Hour)*3600 + GetTime(\Min)*60 + GetTime(\Sec);
+        
+!        FOR i FROM 1 TO Dim(queue, 1) DO
+!            TPWrite "a = ", \Num:=queue{i,1};
+!        ENDFOR
         
         !Switch TaskID
         TEST queue{1,1} 
             CASE 1:
                 !check the 1st empty position on the oven
                 FOR i FROM 1 TO 9 DO
-                    IF NOT occOven{i} THEN
+                    IF (NOT occOven{i}) AND (NOT found) THEN
+                        found := TRUE;
+                        
                         iOven := i DIV 3;
                         jOven := i MOD 3;
                         occOven{i} := TRUE;
+                        !hack: avoid 0s
+                        IF iOven = 0 iOven := 1;
+                        IF jOven = 0 jOven := 3;
                         !Break; there's no break :(
                     ENDIF
                 ENDFOR
                 
                 !perform the task
+                TPWrite "a = ", \Num:=iOven;
+                TPWrite "a = ", \Num:=jOven;
                 conv2oven pConv, pOven, 1, iOven, jOven;
                 !generate a new task
                 newTask := [3, currTime+time{queue{1,1}}, 3*(iOven-1)+jOven];
@@ -252,11 +265,16 @@ MODULE ObelixMov
             CASE 2:
                 !check the 1st empty position on the oven
                 FOR i FROM 1 TO 9 DO
-                    IF NOT occOven{i} THEN
+                    IF (NOT occOven{i}) AND (NOT found) THEN
+                        found := TRUE;
+                        
                         iOven := i DIV 3;
                         jOven := i MOD 3;
                         occOven{i} := TRUE;
-                        ! Break; there's no break :(
+                        !hack: avoid 0s
+                        IF iOven = 0 iOven := 1;
+                        IF jOven = 0 jOven := 3;
+                        !Break; there's no break :(
                     ENDIF
                 ENDFOR
                 
@@ -269,6 +287,10 @@ MODULE ObelixMov
                 !get the oven position
                 iOven := queue{1,3} DIV 3;
                 jOven := queue{1,3} MOD 3;
+                !hack: avoid 0s
+                IF iOven = 0 iOven := 1;
+                IF jOven = 0 jOven := 3;
+                
                 occOven{queue{1,3}} := FALSE;
                 
                 !perform the task
@@ -285,27 +307,27 @@ MODULE ObelixMov
             CASE 0:
                 !go to home
                 MoveJ pHome, v1000, fine, tool0;
+                RETURN;
     
             DEFAULT:
                 !do nothing
         ENDTEST
         
         !update the queue list comparing the completion times
-		IF queue{1,1} <> 0 THEN
-			FOR i FROM 2 TO Dim(queue, 1) DO
-				IF (newTask{1} = 0 OR queue{i,2} < newTask{2}) AND queue{i,1} <> 0 THEN
-					queue{i-1,1} := queue{i,1}; 
-					queue{i-1,2} := queue{i,2}; 
-					queue{i-1,3} := queue{i,3}; 
-				ELSE
-					!newTask completes before the queued task
-					queue{i-1,1} := newTask{1}; 
-					queue{i-1,2} := newTask{2}; 
-					queue{i-1,3} := newTask{3};
-					RETURN;!Break; There's no break :(
-				ENDIF
-			ENDFOR
-		ENDIF
+		FOR i FROM 2 TO Dim(queue, 1) DO
+			IF (newTask{1} = 0 OR queue{i,2} < newTask{2}) AND queue{i,1} <> 0 THEN
+				queue{i-1,1} := queue{i,1}; 
+				queue{i-1,2} := queue{i,2}; 
+				queue{i-1,3} := queue{i,3}; 
+			ELSE
+				!newTask completes before the queued task
+				queue{i-1,1} := newTask{1}; 
+				queue{i-1,2} := newTask{2}; 
+				queue{i-1,3} := newTask{3};
+				RETURN;!Break; There's no break :(
+			ENDIF
+		ENDFOR
+		
         
     ENDPROC
     
