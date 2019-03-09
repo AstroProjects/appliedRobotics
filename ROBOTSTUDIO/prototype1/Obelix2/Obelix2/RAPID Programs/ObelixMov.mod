@@ -28,17 +28,23 @@ MODULE ObelixMov
     ! +---------+------------------------------------------------+
     ! | Task ID |                Task Description                |
     ! +---------+------------------------------------------------+
-    ! |       1 | pick choco from conveyor1 & bring to oven      |
-    ! |       2 | take choco1 from oven & bring to man. station  |
-    ! |       3 | take choco2 from oven & bring to man. station  |
+    ! |       1 | pick choco1 from conveyor1 & bring to oven     |
+    ! |       2 | pick choco2 from conveyor1 & bring to oven     |
+    ! |       3 | take choco from oven & bring to man. station   |
     ! |       4 | take the mould from ms & throw it to conveyor2 |
     ! |       0 | no task                                        |
     ! +---------+------------------------------------------------+
     
-    VAR num taskTimming{4} := [0+30, 60, 120, 5+30]; ! time in seconds for each task
-    VAR num taskQueue{2,3}; ![Task id, completion time, opt_par]
+    VAR num taskTimming{4} := [60, 120, 0, 5]; ! time in seconds to trigger next task
+    VAR num timeDelta := 0; !delta between currTime and next Task
+    VAR num timeMov := 30; !time elapsed during robot movements
+    
+    VAR num taskQueue{10,3}; ![Task id, completion time, opt_par]
+    
+    VAR num currTime; ! var to store current time
     
     VAR bool occOven{9}; ! idx computed as (i-1)*3+j
+    VAR bool isHome := TRUE; ! flag to know if the robot is at pHome
     
     ! Points variables
     VAR robtarget pConv{2,2};
@@ -86,13 +92,24 @@ MODULE ObelixMov
         
         ! 3. Start the job
         !while produced < total
-        WHILE numChoc{1,1}+numChoc{1,2}<numChoc{2,1}+numChoc{2,2} DO
-            performTask taskQueue, occOven, taskTimming, pConv, pOven, pMan;
+        WHILE numChoc{1,1}+numChoc{1,2}<numChoc{2,1}+numChoc{2,2} OR 
+              (numChoc{1,1}+numChoc{1,2}=numChoc{2,1}+numChoc{2,2} AND taskQueue{1,1} <> 0) DO
+            !get current time
+            currTime := GetTime(\Hour)*3600 + GetTime(\Min)*60 + GetTime(\Sec);
+            
+            !do some movement
+            IF taskQueue{1,1} <> 0 AND taskQueue{1,2} - currTime < timeDelta THEN
+                performTask taskQueue, occOven, taskTimming, pConv, pOven, pMan;
+                isHome := FALSE;
+            ELSEIF (NOT isHome) AND (taskQueue{1,1} = 0 OR taskQueue{1,2} - currTime > timeMov) THEN
+                MoveJ pHome, v1000, fine, tool0;
+                isHome := TRUE;
+            ENDIF
         ENDWHILE
         
         
         ! TEST. Movement Tests
-        movTest pConv, pOven, pMan;
+        !movTest pConv, pOven, pMan;
         
         !-----------------------------------
         MoveJ pHome, v1000, fine, tool0;
@@ -166,8 +183,8 @@ MODULE ObelixMov
         
         VAR num newTask{3};
         VAR num auxTask{3};
-		
-		VAR num currTime;
+        
+        VAR num currTime;
         currTime := GetTime(\Hour)*3600 + GetTime(\Min)*60 + GetTime(\Sec);
         
         TPReadFK type, "A chocolate figure has arrived to the station. Which type of chocolate is?", "TP1", "TP2", stEmpty,stEmpty,stEmpty;
@@ -182,10 +199,10 @@ MODULE ObelixMov
         !Erase the contents of the display and print the numbers of figures completed
         updateDisp n;
         
-        !Add a task 1 to the queue
-        newTask := [1, CurrTime+time{1}, 0];
+        !Add a task 1 or 2 to the queue
+        newTask := [type, currTime, 0];
         FOR i FROM 1 TO Dim(queue, 1) DO
-            IF newTask{2} < queue{i,2} OR queue{i,1} = 0 THEN
+            IF newTask{2} + timeMov < queue{i,2} OR queue{i,1} = 0 THEN
                 !backup newTask
                 auxTask := newTask;
                 
@@ -233,10 +250,6 @@ MODULE ObelixMov
         VAR num currTime;
         currTime := GetTime(\Hour)*3600 + GetTime(\Min)*60 + GetTime(\Sec);
         
-!        FOR i FROM 1 TO Dim(queue, 1) DO
-!            TPWrite "a = ", \Num:=queue{i,1};
-!        ENDFOR
-        
         !Switch TaskID
         TEST queue{1,1} 
             CASE 1:
@@ -255,9 +268,6 @@ MODULE ObelixMov
                     ENDIF
                 ENDFOR
                 
-                !perform the task
-                TPWrite "a = ", \Num:=iOven;
-                TPWrite "a = ", \Num:=jOven;
                 conv2oven pConv, pOven, 1, iOven, jOven;
                 !generate a new task
                 newTask := [3, currTime+time{queue{1,1}}, 3*(iOven-1)+jOven];
@@ -304,18 +314,14 @@ MODULE ObelixMov
                 !generate a new task
                 newTask := [0, 0, 0];
                 
-            CASE 0:
-                !go to home
-                MoveJ pHome, v1000, fine, tool0;
-                RETURN;
-    
             DEFAULT:
-                !do nothing
+                !do nothing and exit the proc
+                RETURN;
         ENDTEST
         
         !update the queue list comparing the completion times
 		FOR i FROM 2 TO Dim(queue, 1) DO
-			IF (newTask{1} = 0 OR queue{i,2} < newTask{2}) AND queue{i,1} <> 0 THEN
+			IF newTask{1} = 0 OR (queue{i,1} <> 0 AND queue{i,2} < newTask{2} + timeMov) THEN
 				queue{i-1,1} := queue{i,1}; 
 				queue{i-1,2} := queue{i,2}; 
 				queue{i-1,3} := queue{i,3}; 
