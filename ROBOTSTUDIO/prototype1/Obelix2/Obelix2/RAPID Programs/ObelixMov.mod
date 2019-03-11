@@ -200,6 +200,7 @@ MODULE ObelixMov
         updateDisp n;
         
         !Add a task 1 or 2 to the queue
+        currTime := GetTime(\Hour)*3600 + GetTime(\Min)*60 + GetTime(\Sec);
         newTask := [type, currTime, 0];
         FOR i FROM 1 TO Dim(queue, 1) DO
             IF newTask{2} + timeMov < queue{i,2} OR queue{i,1} = 0 THEN
@@ -248,7 +249,6 @@ MODULE ObelixMov
         VAR num newTask{3}; ![taskID, time, opt]
         
         VAR num currTime;
-        currTime := GetTime(\Hour)*3600 + GetTime(\Min)*60 + GetTime(\Sec);
         
         !Switch TaskID
         TEST queue{1,1} 
@@ -270,6 +270,7 @@ MODULE ObelixMov
                 
                 conv2oven pConv, pOven, 1, iOven, jOven;
                 !generate a new task
+                currTime := GetTime(\Hour)*3600 + GetTime(\Min)*60 + GetTime(\Sec);
                 newTask := [3, currTime+time{queue{1,1}}, 3*(iOven-1)+jOven];
                 
             CASE 2:
@@ -291,6 +292,7 @@ MODULE ObelixMov
                 !perform the task
                 conv2oven pConv, pOven, 1, iOven, jOven;
                 !generate a new task
+                currTime := GetTime(\Hour)*3600 + GetTime(\Min)*60 + GetTime(\Sec);
                 newTask := [3, currTime+time{queue{1,1}}, 3*(iOven-1)+jOven];
                 
             CASE 3:
@@ -306,6 +308,7 @@ MODULE ObelixMov
                 !perform the task
                 oven2man pOven, pMan, iOven, jOven;
                 !generate a new task
+                currTime := GetTime(\Hour)*3600 + GetTime(\Min)*60 + GetTime(\Sec);
                 newTask := [4, currTime+time{queue{1,1}}, 0];
                 
             CASE 4:
