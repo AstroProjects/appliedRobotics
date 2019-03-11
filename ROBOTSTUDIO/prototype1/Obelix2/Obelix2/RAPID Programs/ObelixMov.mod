@@ -39,7 +39,7 @@ MODULE ObelixMov
     VAR num timeDelta := 0; !delta between currTime and next Task
     VAR num timeMov := 30; !time elapsed during robot movements
     
-    VAR num taskQueue{10,3}; ![Task id, completion time, opt_par]
+    VAR num taskQueue{30,3}; ![Task id, completion time, opt_par]
     
     VAR num currTime; ! var to store current time
     
@@ -93,7 +93,7 @@ MODULE ObelixMov
         ! 3. Start the job
         !while produced < total
         WHILE numChoc{1,1}+numChoc{1,2}<numChoc{2,1}+numChoc{2,2} OR 
-              (numChoc{1,1}+numChoc{1,2}=numChoc{2,1}+numChoc{2,2} AND taskQueue{1,1} <> 0) DO
+              (numChoc{1,1}+numChoc{1,2}>=numChoc{2,1}+numChoc{2,2} AND taskQueue{1,1} <> 0) DO
             !get current time
             currTime := GetTime(\Hour)*3600 + GetTime(\Min)*60 + GetTime(\Sec);
             
