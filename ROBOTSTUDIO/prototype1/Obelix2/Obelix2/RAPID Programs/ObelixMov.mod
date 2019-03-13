@@ -14,11 +14,11 @@ MODULE ObelixMov
     
     CONST robtarget pHome    :=[[507.9,-6.43,715.02],[0.697685,-0.00154316,0.716328,-0.0103435],[-1,-1,-1,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
 	CONST robtarget pConvRef :=[[-109.516885301,-504.792720334,376.620999376],[0.243054291,0.717735721,0.578717345,-0.301440343],[-2,0,-1,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
-	CONST robtarget pManRef  :=[[580,42.299990184,552.739936658],[0.51893094,-0.131239024,0.843441139,-0.045760712],[0,-1,-1,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
+	CONST robtarget pManRef  :=[[580,42.299990184,552.739936658],[0.51893094,-0.131239024,0.843441139,-0.045760712],[-1,-1,-1,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
     CONST robtarget pOvenRef :=[[-291.029880742,659.908842444,594.297264732],[0.363486279,-0.625201176,0.407577419,0.55756781],[1,0,-1,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
     
     CONST num convSecOffset{3} := [0, 0, -100];   !security offset [x, y, z]
-    CONST num manSecOffset{3} := [0, 0, -100];    !security offset [x, y, z]
+    CONST num manSecOffset{3} := [0, 0, -50];    !security offset [x, y, z]
     CONST num ovenSecOffset{3} := [0, 100, 0];   !security offset [x, y, z]
     
     CONST num convOffset{3} := [0, -200, 0];        !offset between 2 conv [x, y, z]
@@ -30,10 +30,9 @@ MODULE ObelixMov
     ! +---------+------------------------------------------------+
     ! | Task ID |                Task Description                |
     ! +---------+------------------------------------------------+
-    ! |       1 | pick choco1 from conveyor1 & bring to oven     |
-    ! |       2 | pick choco2 from conveyor1 & bring to oven     |
-    ! |       3 | take choco from oven & bring to man. station   |
-    ! |       4 | take the mould from ms & throw it to conveyor2 |
+    ! |       1 | pick choco from conveyor1 & bring to oven      |
+    ! |       2 | take choco from oven & bring to man. station   |
+    ! |       3 | take the mould from ms & throw it to conveyor2 |
     ! |       0 | no task                                        |
     ! +---------+------------------------------------------------+
     
@@ -41,7 +40,7 @@ MODULE ObelixMov
     VAR num timeDelta := 0; !delta between currTime and next Task
     VAR num timeMov := 30; !time elapsed during robot movements
     
-    VAR num taskQueue{30,3}; ![Task id, completion time, opt_par]
+    VAR num taskQueue{30,4}; ![Task id, completion time, opt_par1(chocType), opt_par2]
     
     VAR num currTime; ! var to store current time
     
@@ -94,14 +93,13 @@ MODULE ObelixMov
         
         ! 3. Start the job
         !while produced < total
-        WHILE numChoc{1,1}+numChoc{1,2}<numChoc{2,1}+numChoc{2,2} OR 
-              (numChoc{1,1}+numChoc{1,2}>=numChoc{2,1}+numChoc{2,2} AND taskQueue{1,1} <> 0) DO
+        WHILE numChoc{1,1}+numChoc{1,2}<numChoc{2,1}+numChoc{2,2}  DO
             !get current time
             currTime := GetTime(\Hour)*3600 + GetTime(\Min)*60 + GetTime(\Sec);
             
             !do some movement
             IF taskQueue{1,1} <> 0 AND taskQueue{1,2} - currTime < timeDelta THEN
-                performTask taskQueue, occOven, taskTimming, pConv, pOven, pMan;
+                performTask taskQueue, occOven, taskTimming, numChoc, pConv, pOven, pMan;
                 isHome := FALSE;
             ELSEIF (NOT isHome) AND (taskQueue{1,1} = 0 OR taskQueue{1,2} - currTime > timeMov) THEN
                 MoveJ pHome, v1000, fine, tool0;
@@ -119,7 +117,7 @@ MODULE ObelixMov
     
     !***********************************************************
     TRAP iMove
-        triggerSeq chocType, numChoc, taskQueue, taskTimming;
+        triggerSeq chocType, taskQueue, taskTimming;
     ENDTRAP
     
     !***********************************************************
@@ -187,29 +185,19 @@ MODULE ObelixMov
     ENDPROC
     
     !***********************************************************
-    PROC triggerSeq(INOUT num type, INOUT num n{*,*}, INOUT num queue{*,*}, num time{*})
+    PROC triggerSeq(INOUT num type, INOUT num queue{*,*}, num time{*})
         
-        VAR num newTask{3};
-        VAR num auxTask{3};
+        VAR num newTask{4};
+        VAR num auxTask{4};
         
         VAR num currTime;
         currTime := GetTime(\Hour)*3600 + GetTime(\Min)*60 + GetTime(\Sec);
         
         TPReadFK type, "A chocolate figure has arrived to the station. Which type of chocolate is?", "TP1", "TP2", stEmpty,stEmpty,stEmpty;
         
-        !Update chocolate counters
-        IF type = 1 THEN
-            Incr n{1,1};
-        ELSE
-            Incr n{1,2};
-        ENDIF
-        
-        !Erase the contents of the display and print the numbers of figures completed
-        updateDisp n;
-        
-        !Add a task 1 or 2 to the queue
+        !Add a task 1 to the queue
         currTime := GetTime(\Hour)*3600 + GetTime(\Min)*60 + GetTime(\Sec);
-        newTask := [type, currTime, 0];
+        newTask := [1, currTime, type, 0];
         FOR i FROM 1 TO Dim(queue, 1) DO
             IF newTask{2} + timeMov < queue{i,2} OR queue{i,1} = 0 THEN
                 !backup newTask
@@ -218,10 +206,12 @@ MODULE ObelixMov
                 newTask{1} := queue{i,1}; 
                 newTask{2} := queue{i,2}; 
                 newTask{3} := queue{i,3};
+                newTask{4} := queue{i,4};
                 
                 queue{i,1} := auxTask{1}; 
                 queue{i,2} := auxTask{2}; 
                 queue{i,3} := auxTask{3};
+                queue{i,4} := auxTask{4};
             ENDIF
         ENDFOR
     ENDPROC
@@ -248,19 +238,20 @@ MODULE ObelixMov
     ENDPROC
     
     !***********************************************************
-    PROC performTask(INOUT num queue{*,*}, INOUT bool occOven{*}, num time{*},
+    PROC performTask(INOUT num queue{*,*}, INOUT bool occOven{*}, num time{*}, INOUT num n{*,*},
                      robtarget pConv{*,*}, robtarget pOven{*,*,*}, robtarget pMan{*})
                      
         VAR num iOven;
         VAR num jOven;
         VAR bool found := FALSE;
-        VAR num newTask{3}; ![taskID, time, opt]
+        VAR num newTask{4}; ![taskID, time, opt1, opt2]
         
         VAR num currTime;
         
         !Switch TaskID
         TEST queue{1,1} 
             CASE 1:
+                ! CHOCO HAS ARRIVED
                 !check the 1st empty position on the oven
                 FOR i FROM 1 TO 9 DO
                     IF (NOT occOven{i}) AND (NOT found) THEN
@@ -279,51 +270,41 @@ MODULE ObelixMov
                 conv2oven pConv, pOven, 1, iOven, jOven;
                 !generate a new task
                 currTime := GetTime(\Hour)*3600 + GetTime(\Min)*60 + GetTime(\Sec);
-                newTask := [3, currTime+time{queue{1,1}}, 3*(iOven-1)+jOven];
+                newTask := [2, currTime+time{queue{1,1}+(queue{1,3}-1)}, queue{1,3}, 3*(iOven-1)+jOven];
                 
             CASE 2:
-                !check the 1st empty position on the oven
-                FOR i FROM 1 TO 9 DO
-                    IF (NOT occOven{i}) AND (NOT found) THEN
-                        found := TRUE;
-                        
-                        iOven := i DIV 3;
-                        jOven := i MOD 3;
-                        occOven{i} := TRUE;
-                        !hack: avoid 0s
-                        IF iOven = 0 iOven := 1;
-                        IF jOven = 0 jOven := 3;
-                        !Break; there's no break :(
-                    ENDIF
-                ENDFOR
-                
-                !perform the task
-                conv2oven pConv, pOven, 1, iOven, jOven;
-                !generate a new task
-                currTime := GetTime(\Hour)*3600 + GetTime(\Min)*60 + GetTime(\Sec);
-                newTask := [3, currTime+time{queue{1,1}}, 3*(iOven-1)+jOven];
-                
-            CASE 3:
+                !PICK FROM OVEN & BRING TO MAN
                 !get the oven position
-                iOven := queue{1,3} DIV 3;
-                jOven := queue{1,3} MOD 3;
+                iOven := queue{1,4} DIV 3;
+                jOven := queue{1,4} MOD 3;
                 !hack: avoid 0s
                 IF iOven = 0 iOven := 1;
                 IF jOven = 0 jOven := 3;
                 
-                occOven{queue{1,3}} := FALSE;
+                occOven{queue{1,4}} := FALSE;
                 
                 !perform the task
                 oven2man pOven, pMan, iOven, jOven;
                 !generate a new task
                 currTime := GetTime(\Hour)*3600 + GetTime(\Min)*60 + GetTime(\Sec);
-                newTask := [4, currTime+time{queue{1,1}}, 0];
+                newTask := [3, currTime+time{queue{1,1}+1}, queue{1,3}, 0];
                 
-            CASE 4:
+            CASE 3:
+                !TAKE MOULD AND BRING TO CONVEYOR
                 !perform the task
                 man2conv pMan, pConv, 2;
                 !generate a new task
-                newTask := [0, 0, 0];
+                newTask := [0, 0, 0, 0];
+                
+                !Update chocolate counters
+                IF queue{1,3} = 1 THEN
+                    Incr n{1,1};
+                ELSE
+                    Incr n{1,2};
+                ENDIF
+        
+                !Erase the contents of the display and print the numbers of figures completed
+                updateDisp n;
                 
             DEFAULT:
                 !do nothing and exit the proc
@@ -335,12 +316,14 @@ MODULE ObelixMov
 			IF newTask{1} = 0 OR (queue{i,1} <> 0 AND queue{i,2} < newTask{2} + timeMov) THEN
 				queue{i-1,1} := queue{i,1}; 
 				queue{i-1,2} := queue{i,2}; 
-				queue{i-1,3} := queue{i,3}; 
+				queue{i-1,3} := queue{i,3};
+                queue{i-1,4} := queue{i,4};
 			ELSE
 				!newTask completes before the queued task
 				queue{i-1,1} := newTask{1}; 
 				queue{i-1,2} := newTask{2}; 
 				queue{i-1,3} := newTask{3};
+                queue{i-1,4} := newTask{4};
 				RETURN;!Break; There's no break :(
 			ENDIF
 		ENDFOR
