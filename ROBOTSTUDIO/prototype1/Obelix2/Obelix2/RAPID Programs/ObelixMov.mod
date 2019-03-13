@@ -93,7 +93,7 @@ MODULE ObelixMov
         
         ! 3. Start the job
         !while produced < total
-        WHILE numChoc{1,1}+numChoc{1,2}<numChoc{2,1}+numChoc{2,2}  DO
+        WHILE numChoc{1,1}<numChoc{2,1}AND +numChoc{1,2}<numChoc{2,2}  DO
             !get current time
             currTime := GetTime(\Hour)*3600 + GetTime(\Min)*60 + GetTime(\Sec);
             
