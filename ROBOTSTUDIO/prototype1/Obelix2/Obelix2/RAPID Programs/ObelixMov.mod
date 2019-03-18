@@ -152,7 +152,7 @@ MODULE ObelixMov
     FUNC num checkPos()
         VAR pos check_diff;
         VAR num diff;
-        VAR num threshold := 100;
+        VAR num threshold := 250;
         !0-> home 1->conveyor 2->oven 3->man 
         !check home
         pos1 := CPos();
@@ -239,6 +239,11 @@ MODULE ObelixMov
     
     !***********************************************************
     PROC conv2oven(robtarget pConv{*,*}, robtarget pOven{*,*,*}, num iConv, num iOven, num jOven)
+        !Check position
+        place := checkPos();
+        IF place = 1 OR place = 404 THEN 
+           MoveJ pHome, v1000, fine, tool0;
+        ENDIF
         
         MoveS [pConv{1, iConv}, pConv{2, iConv}], v1000, vSecurity, fine, tool0;
         
