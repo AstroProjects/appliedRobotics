@@ -14,11 +14,12 @@ MODULE ObelixMov
     
     CONST robtarget pHome    :=[[507.9,-6.43,715.02],[0.697685,-0.00154316,0.716328,-0.0103435],[-1,-1,-1,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
 	CONST robtarget pConvRef :=[[-109.516885301,-504.792720334,376.620999376],[0.243054291,0.717735721,0.578717345,-0.301440343],[-2,0,-1,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
-	CONST robtarget pManRef  :=[[580,42.299990184,552.739936658],[0.51893094,-0.131239024,0.843441139,-0.045760712],[-1,-1,-1,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
+	CONST robtarget pManRef  :=[[507.9,-6.43,715.02],[0.697685,-0.00154316,0.716328,-0.0103435],[-1,-1,-1,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
+	!CONST robtarget pManRef  :=[[580,42.299990184,552.739936658],[0.51893094,-0.131239024,0.843441139,-0.045760712],[-1,-1,-1,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
     CONST robtarget pOvenRef :=[[-291.029880742,659.908842444,594.297264732],[0.363486279,-0.625201176,0.407577419,0.55756781],[1,0,-1,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
     
     CONST num convSecOffset{3} := [0, 0, -100];   !security offset [x, y, z]
-    CONST num manSecOffset{3} := [50, 10, -50];    !security offset [x, y, z]
+    CONST num manSecOffset{3} := [100, 0, 0];    !security offset [x, y, z]
     CONST num ovenSecOffset{3} := [0, 100, 0];   !security offset [x, y, z]
     
     CONST num convOffset{3} := [0, -200, 0];        !offset between 2 conv [x, y, z]
@@ -60,6 +61,10 @@ MODULE ObelixMov
     VAR intnum pushInt1;
     VAR intnum pushInt2;
     VAR intnum pushInt3;
+
+    !Check position
+    VAR pos pos1;
+    VAR num place;
     
     
     !***********************************************************
@@ -104,6 +109,10 @@ MODULE ObelixMov
             currTime := GetTime(\Hour)*3600 + GetTime(\Min)*60 + GetTime(\Sec);
             
             !do some movement
+            !************
+             place := checkPos();
+             updateDisp numChoc;
+            !*****************
             IF taskQueue{1,1} <> 0 AND taskQueue{1,2} - currTime < timeDelta THEN
                 performTask taskQueue, occOven, taskTimming, numChoc, pConv, pOven, pMan;
                 isHome := FALSE;
@@ -138,6 +147,64 @@ MODULE ObelixMov
     TRAP iStop
         emergencyStop;
     ENDTRAP
+
+    !***********************************************************
+    FUNC num checkPos()
+        VAR pos check_diff;
+        VAR num diff;
+        VAR num threshold := 100;
+        !0-> home 1->conveyor 2->oven 3->man 
+        !check home
+        pos1 := CPos();
+        
+        check_diff.x := pos1.x - pHome.trans.x;
+        check_diff.y := pos1.y - pHome.trans.y;
+        check_diff.z := pos1.z - pHome.trans.z;
+        
+        diff := VectMagn(check_diff);
+        IF diff <= threshold THEN
+            RETURN 0;
+        ENDIF
+        !check conveyor
+        pos1 := CPos();
+        
+        check_diff.x := pos1.x - pConvRef.trans.x;
+        check_diff.y := pos1.y - pConvRef.trans.y;
+        check_diff.z := pos1.z - pConvRef.trans.z;
+        
+        diff := VectMagn(check_diff);
+        IF diff <= threshold THEN
+            RETURN 1;
+        ENDIF
+        
+        !check oven
+        pos1 := CPos();
+        
+        check_diff.x := pos1.x - pOvenRef.trans.x;
+        check_diff.y := pos1.y - pOvenRef.trans.y;
+        check_diff.z := pos1.z - pOvenRef.trans.z;
+        
+        diff := VectMagn(check_diff);
+        IF diff <= threshold THEN
+            RETURN 2;
+        ENDIF
+        
+         !check man
+        pos1 := CPos();
+        
+        check_diff.x := pos1.x - pManRef.trans.x;
+        check_diff.y := pos1.y - pManRef.trans.y;
+        check_diff.z := pos1.z - pManRef.trans.z;
+        
+        diff := VectMagn(check_diff);
+        IF diff <= threshold THEN
+            RETURN 3;
+        ENDIF 
+		
+		!DEFAULT
+		RETURN 404;
+        
+    ENDFUNC
     
     !***********************************************************
     PROC defineOvenPts(robtarget orig, num matOffs{*}, num secOffs{*}, INOUT robtarget pts{*,*,*})
@@ -278,6 +345,9 @@ MODULE ObelixMov
         TPWrite "CHOCOLATE TYPE 2:";
         TPWrite "   Produced = ", \Num := n{1,2};
         TPWrite "   Total = ", \Num := n{2,2};
+
+        TPWrite " Position = ", \Pos := pos1;
+        TPWrite " Position according to us = ", \Num := place;
     ENDPROC
     
     !***********************************************************
