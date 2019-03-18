@@ -61,6 +61,7 @@ MODULE ObelixMov
     
     !Check position
     VAR pos pos1;
+    VAR num place;
     
     
     !***********************************************************
@@ -72,7 +73,7 @@ MODULE ObelixMov
     !***********************************************************
     PROC main()
         MoveJ pHome, v1000, fine, tool0;
-        checkPos;
+        place := checkPos();
         !-----------------------------------
         
         ! 0. Points definition
@@ -120,10 +121,59 @@ MODULE ObelixMov
         MoveJ pHome, v1000, fine, tool0;
     ENDPROC
     !***********************************************************
-    PROC checkPos()
-        !1->conveyor 2->oven 3->man
-        pos1 := CPos();       
-    ENDPROC
+    FUNC num checkPos()
+        VAR pos check_diff;
+        VAR num diff;
+        VAR num threshold := 100;
+        !0-> home 1->conveyor 2->oven 3->man 
+        !check home
+        pos1 := CPos();
+        
+        check_diff.x := pos1.x - pHome.trans.x;
+        check_diff.y := pos1.y - pHome.trans.y;
+        check_diff.z := pos1.z - pHome.trans.z;
+        
+        diff := VectMagn(check_diff);
+        IF diff <= threshold THEN
+            RETURN 0;
+        ENDIF
+        !check conveyor
+        pos1 := CPos();
+        
+        check_diff.x := pos1.x - pConvRef.trans.x;
+        check_diff.y := pos1.y - pConvRef.trans.y;
+        check_diff.z := pos1.z - pConvRef.trans.z;
+        
+        diff := VectMagn(check_diff);
+        IF diff <= threshold THEN
+            RETURN 1;
+        ENDIF
+        
+        !check oven
+        pos1 := CPos();
+        
+        check_diff.x := pos1.x - pOvenRef.trans.x;
+        check_diff.y := pos1.y - pOvenRef.trans.y;
+        check_diff.z := pos1.z - pOvenRef.trans.z;
+        
+        diff := VectMagn(check_diff);
+        IF diff <= threshold THEN
+            RETURN 2;
+        ENDIF
+        
+         !check man
+        pos1 := CPos();
+        
+        check_diff.x := pos1.x - pManRef.trans.x;
+        check_diff.y := pos1.y - pManRef.trans.y;
+        check_diff.z := pos1.z - pManRef.trans.z;
+        
+        diff := VectMagn(check_diff);
+        IF diff <= threshold THEN
+            RETURN 3;
+        ENDIF 
+        
+    ENDFUNC
     
     !***********************************************************
     TRAP iMove
@@ -238,6 +288,8 @@ MODULE ObelixMov
         TPWrite "CHOCOLATE TYPE 2:";
         TPWrite "   Produced = ", \Num := n{1,2};
         TPWrite "   Total = ", \Num := n{2,2};
+        TPWrite " Position = ", \Pos := pos1;
+        TPWrite " Position according to us = ", \Num := place;
     ENDPROC
     
     !***********************************************************
