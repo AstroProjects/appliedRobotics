@@ -241,7 +241,7 @@ MODULE ObelixMov
     PROC conv2oven(robtarget pConv{*,*}, robtarget pOven{*,*,*}, num iConv, num iOven, num jOven)
         !Check position
         place := checkPos();
-        IF place = 1 OR place = 404 THEN 
+        IF place = 2 OR place = 404 THEN 
            MoveJ pHome, v1000, fine, tool0;
         ENDIF
         
