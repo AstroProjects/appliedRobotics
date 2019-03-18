@@ -18,7 +18,7 @@ MODULE ObelixMov
     CONST robtarget pOvenRef :=[[-291.029880742,659.908842444,594.297264732],[0.363486279,-0.625201176,0.407577419,0.55756781],[1,0,-1,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
     
     CONST num convSecOffset{3} := [0, 0, -100];   !security offset [x, y, z]
-    CONST num manSecOffset{3} := [50, 10, -50];    !security offset [x, y, z]
+    CONST num manSecOffset{3} := [50, 30, -50];    !security offset [x, y, z]
     CONST num ovenSecOffset{3} := [0, 100, 0];   !security offset [x, y, z]
     
     CONST num convOffset{3} := [0, -200, 0];        !offset between 2 conv [x, y, z]
@@ -57,7 +57,8 @@ MODULE ObelixMov
     VAR num chocType;
     
     !Interrupts
-    VAR intnum pushInt;
+    VAR intnum pushInt1;
+    VAR intnum pushInt2;
     
     
     !***********************************************************
@@ -87,8 +88,10 @@ MODULE ObelixMov
         !triggerSeq chocType, numChoc;
         
         ! 2. Connect interrupts
-        CONNECT pushInt WITH iMove;
-        ISignalDI di0,1,pushInt;
+        CONNECT pushInt1 WITH iMove1;
+        ISignalDI sensor1,1,pushInt1;
+        CONNECT pushInt2 WITH iMove2;
+        ISignalDI sensor2,1,pushInt2;
         
         
         ! 3. Start the job
@@ -116,8 +119,17 @@ MODULE ObelixMov
     ENDPROC
     
     !***********************************************************
+    ! @deprecated
     TRAP iMove
         triggerSeq chocType, taskQueue, taskTimming;
+    ENDTRAP
+    
+    TRAP iMove1
+        triggerSeq2 1, taskQueue, taskTimming;
+    ENDTRAP
+    
+    TRAP iMove2
+        triggerSeq2 2, taskQueue, taskTimming;
     ENDTRAP
     
     !***********************************************************
@@ -185,6 +197,7 @@ MODULE ObelixMov
     ENDPROC
     
     !***********************************************************
+    ! @deprecated
     PROC triggerSeq(INOUT num type, INOUT num queue{*,*}, num time{*})
         
         VAR num newTask{4};
@@ -194,6 +207,38 @@ MODULE ObelixMov
         currTime := GetTime(\Hour)*3600 + GetTime(\Min)*60 + GetTime(\Sec);
         
         TPReadFK type, "A chocolate figure has arrived to the station. Which type of chocolate is?", "TP1", "TP2", stEmpty,stEmpty,stEmpty;
+        
+        !Add a task 1 to the queue
+        currTime := GetTime(\Hour)*3600 + GetTime(\Min)*60 + GetTime(\Sec);
+        newTask := [1, currTime, type, 0];
+        FOR i FROM 1 TO Dim(queue, 1) DO
+            IF newTask{2} + timeMov < queue{i,2} OR queue{i,1} = 0 THEN
+                !backup newTask
+                auxTask := newTask;
+                
+                newTask{1} := queue{i,1}; 
+                newTask{2} := queue{i,2}; 
+                newTask{3} := queue{i,3};
+                newTask{4} := queue{i,4};
+                
+                queue{i,1} := auxTask{1}; 
+                queue{i,2} := auxTask{2}; 
+                queue{i,3} := auxTask{3};
+                queue{i,4} := auxTask{4};
+            ENDIF
+        ENDFOR
+    ENDPROC
+    
+    !***********************************************************
+    PROC triggerSeq2(num type, INOUT num queue{*,*}, num time{*})
+        
+        VAR num newTask{4};
+        VAR num auxTask{4};
+        
+        VAR num currTime;
+        
+        TPWrite "A chocolate figure TYPE" \Num:=type;
+        TPWrite "has arrived to the station";
         
         !Add a task 1 to the queue
         currTime := GetTime(\Hour)*3600 + GetTime(\Min)*60 + GetTime(\Sec);
