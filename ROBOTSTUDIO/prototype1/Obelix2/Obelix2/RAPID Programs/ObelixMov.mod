@@ -18,7 +18,7 @@ MODULE ObelixMov
     CONST robtarget pOvenRef :=[[-291.029880742,659.908842444,594.297264732],[0.363486279,-0.625201176,0.407577419,0.55756781],[1,0,-1,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
     
     CONST num convSecOffset{3} := [0, 0, -100];   !security offset [x, y, z]
-    CONST num manSecOffset{3} := [50, 30, -50];    !security offset [x, y, z]
+    CONST num manSecOffset{3} := [50, 10, -50];    !security offset [x, y, z]
     CONST num ovenSecOffset{3} := [0, 100, 0];   !security offset [x, y, z]
     
     CONST num convOffset{3} := [0, -200, 0];        !offset between 2 conv [x, y, z]
@@ -59,6 +59,7 @@ MODULE ObelixMov
     !Interrupts
     VAR intnum pushInt1;
     VAR intnum pushInt2;
+    VAR intnum pushInt3;
     
     
     !***********************************************************
@@ -92,6 +93,8 @@ MODULE ObelixMov
         ISignalDI sensor1,1,pushInt1;
         CONNECT pushInt2 WITH iMove2;
         ISignalDI sensor2,1,pushInt2;
+        CONNECT pushInt3 WITH iStop;
+        ISignalDI sensor3,1,pushInt3;
         
         
         ! 3. Start the job
@@ -130,6 +133,10 @@ MODULE ObelixMov
     
     TRAP iMove2
         triggerSeq2 2, taskQueue, taskTimming;
+    ENDTRAP
+    
+    TRAP iStop
+        emergencyStop;
     ENDTRAP
     
     !***********************************************************
@@ -271,6 +278,14 @@ MODULE ObelixMov
         TPWrite "CHOCOLATE TYPE 2:";
         TPWrite "   Produced = ", \Num := n{1,2};
         TPWrite "   Total = ", \Num := n{2,2};
+    ENDPROC
+    
+    !***********************************************************
+    PROC emergencyStop()
+        
+        TPWrite "EMERGENCY BUTTON PRESSED";
+        Break;
+        
     ENDPROC
     
     !***********************************************************
