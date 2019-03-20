@@ -106,9 +106,9 @@ MODULE ObelixMov
             taskPrior{i} := (taskPrior{i} - 0) * (0 - 10) / (10 - 0) + 10;
         ENDFOR
         
-        ! 3. Start the job
+        ! 4. Start the job
         !while produced < total
-        WHILE numChoc{1,1}<numChoc{2,1}AND +numChoc{1,2}<numChoc{2,2}  DO
+        WHILE numChoc{1,1}<numChoc{2,1} OR numChoc{1,2}<numChoc{2,2}  DO
             !get current time
             currTime := GetTime(\Hour)*3600 + GetTime(\Min)*60 + GetTime(\Sec);
             
@@ -121,8 +121,6 @@ MODULE ObelixMov
                 isHome := TRUE;
             ENDIF
         ENDWHILE
-        
-		updateDisp numChoc;
         
         ! TEST. Movement Tests
         !movTest pConv, pOven, pMan;
@@ -297,7 +295,7 @@ MODULE ObelixMov
         currTime := GetTime(\Hour)*3600 + GetTime(\Min)*60 + GetTime(\Sec);
         newTask := [1, currTime, type, 0, taskPrior{1}];
         FOR i FROM 1 TO Dim(queue, 1) DO
-            IF newTask{2} + priorDel * newTask{5} + timeMov < queue{i,2} OR queue{i,1} = 0 THEN
+            IF newTask{2} + priorDel * newTask{5} + timeMov < queue{i,2} + priorDel * queue{i,5} OR queue{i,1} = 0 THEN
                 !backup newTask
                 auxTask := newTask;
                 
@@ -331,7 +329,7 @@ MODULE ObelixMov
         currTime := GetTime(\Hour)*3600 + GetTime(\Min)*60 + GetTime(\Sec);
         newTask := [1, currTime, type, 0, taskPrior{1}];
         FOR i FROM 1 TO Dim(queue, 1) DO
-            IF newTask{2} + priorDel * newTask{5} + timeMov < queue{i,2} OR queue{i,1} = 0 THEN
+            IF newTask{2} + priorDel * newTask{5} + timeMov < queue{i,2} + priorDel * queue{i,5} OR queue{i,1} = 0 THEN
                 !backup newTask
                 auxTask := newTask;
                 
@@ -458,7 +456,7 @@ MODULE ObelixMov
         
         !update the queue list comparing the completion times
 		FOR i FROM 2 TO Dim(queue, 1) DO
-			IF newTask{1} = 0 OR (queue{i,1} <> 0 AND queue{i,2} < newTask{2} + priorDel * newTask{5} + timeMov) THEN
+			IF newTask{1} = 0 OR (queue{i,1} <> 0 AND queue{i,2} + priorDel * queue{i,5} < newTask{2} + priorDel * newTask{5} + timeMov) THEN
 				queue{i-1,1} := queue{i,1}; 
 				queue{i-1,2} := queue{i,2}; 
 				queue{i-1,3} := queue{i,3};
