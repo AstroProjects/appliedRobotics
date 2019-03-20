@@ -43,7 +43,7 @@ MODULE ObelixMov
     VAR num priorDel := 20; !priority artificial time
     VAR num timeMov := 30; !time elapsed during robot movements
     
-    VAR num taskQueue{30,4}; ![Task id, completion time, opt_par1(chocType), opt_par2]
+    VAR num taskQueue{30,5}; ![Task id, completion time, opt_par1(chocType), opt_par2, priority]
     
     VAR num currTime; ! var to store current time
     
@@ -102,7 +102,7 @@ MODULE ObelixMov
         ISignalDI sensor3,1,pushInt3;
         
         ! 3. Reescale the task priority
-        FOR i FROM 0 TO Dim(taskPrior,1) DO
+        FOR i FROM 1 TO Dim(taskPrior,1) DO
             taskPrior{i} := (taskPrior{i} - 0) * (10 - 0) / (10 - 0) + 10;
         ENDFOR
         
@@ -113,10 +113,6 @@ MODULE ObelixMov
             currTime := GetTime(\Hour)*3600 + GetTime(\Min)*60 + GetTime(\Sec);
             
             !do some movement
-            !************
-             place := checkPos();
-             updateDisp numChoc;
-            !*****************
             IF taskQueue{1,1} <> 0 AND taskQueue{1,2} - currTime < timeDelta THEN
                 performTask taskQueue, occOven, taskTimming, numChoc, pConv, pOven, pMan;
                 isHome := FALSE;
@@ -307,6 +303,7 @@ MODULE ObelixMov
                 newTask{1} := queue{i,1}; 
                 newTask{2} := queue{i,2}; 
                 newTask{3} := queue{i,3};
+                newTask{4} := queue{i,4};
                 newTask{5} := queue{i,5};
                 
                 queue{i,1} := auxTask{1}; 
