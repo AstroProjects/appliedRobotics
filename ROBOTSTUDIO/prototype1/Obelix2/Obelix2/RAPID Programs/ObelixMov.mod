@@ -38,7 +38,9 @@ MODULE ObelixMov
     ! +---------+------------------------------------------------+
     
     VAR num taskTimming{4} := [30, 30, 0, 5]; ! time in seconds to trigger next task
+    VAR num taskPrior{4}   := [0, 6, 10, 0];
     VAR num timeDelta := 0; !delta between currTime and next Task
+    VAR num priorDel := 20; !priority artificial time
     VAR num timeMov := 30; !time elapsed during robot movements
     
     VAR num taskQueue{30,4}; ![Task id, completion time, opt_par1(chocType), opt_par2]
@@ -91,8 +93,6 @@ MODULE ObelixMov
         updateDisp numChoc;
         
         
-        !triggerSeq chocType, numChoc;
-        
         ! 2. Connect interrupts
         CONNECT pushInt1 WITH iMove1;
         ISignalDI sensor1,1,pushInt1;
@@ -101,6 +101,10 @@ MODULE ObelixMov
         CONNECT pushInt3 WITH iStop;
         ISignalDI sensor3,1,pushInt3;
         
+        ! 3. Reescale the task priority
+        FOR i FROM 0 TO Dim(taskPrior,1) DO
+            taskPrior{i} := (taskPrior{i} - 0) * (10 - 0) / (10 - 0) + 10;
+        ENDFOR
         
         ! 3. Start the job
         !while produced < total
@@ -275,8 +279,8 @@ MODULE ObelixMov
     ! @deprecated
     PROC triggerSeq(INOUT num type, INOUT num queue{*,*}, num time{*})
         
-        VAR num newTask{4};
-        VAR num auxTask{4};
+        VAR num newTask{5};
+        VAR num auxTask{5};
         
         VAR num currTime;
         currTime := GetTime(\Hour)*3600 + GetTime(\Min)*60 + GetTime(\Sec);
@@ -285,21 +289,22 @@ MODULE ObelixMov
         
         !Add a task 1 to the queue
         currTime := GetTime(\Hour)*3600 + GetTime(\Min)*60 + GetTime(\Sec);
-        newTask := [1, currTime, type, 0];
+        newTask := [1, currTime, type, 0, taskPrior{1}];
         FOR i FROM 1 TO Dim(queue, 1) DO
-            IF newTask{2} + timeMov < queue{i,2} OR queue{i,1} = 0 THEN
+            IF newTask{2} + priorDel * newTask{5} + timeMov < queue{i,2} OR queue{i,1} = 0 THEN
                 !backup newTask
                 auxTask := newTask;
                 
                 newTask{1} := queue{i,1}; 
                 newTask{2} := queue{i,2}; 
                 newTask{3} := queue{i,3};
-                newTask{4} := queue{i,4};
+                newTask{5} := queue{i,5};
                 
                 queue{i,1} := auxTask{1}; 
                 queue{i,2} := auxTask{2}; 
                 queue{i,3} := auxTask{3};
                 queue{i,4} := auxTask{4};
+                queue{i,5} := auxTask{5};
             ENDIF
         ENDFOR
     ENDPROC
@@ -307,8 +312,8 @@ MODULE ObelixMov
     !***********************************************************
     PROC triggerSeq2(num type, INOUT num queue{*,*}, num time{*})
         
-        VAR num newTask{4};
-        VAR num auxTask{4};
+        VAR num newTask{5};
+        VAR num auxTask{5};
         
         VAR num currTime;
         
@@ -317,9 +322,9 @@ MODULE ObelixMov
         
         !Add a task 1 to the queue
         currTime := GetTime(\Hour)*3600 + GetTime(\Min)*60 + GetTime(\Sec);
-        newTask := [1, currTime, type, 0];
+        newTask := [1, currTime, type, 0, taskPrior{1}];
         FOR i FROM 1 TO Dim(queue, 1) DO
-            IF newTask{2} + timeMov < queue{i,2} OR queue{i,1} = 0 THEN
+            IF newTask{2} + priorDel * newTask{5} + timeMov < queue{i,2} OR queue{i,1} = 0 THEN
                 !backup newTask
                 auxTask := newTask;
                 
@@ -327,11 +332,13 @@ MODULE ObelixMov
                 newTask{2} := queue{i,2}; 
                 newTask{3} := queue{i,3};
                 newTask{4} := queue{i,4};
+                newTask{5} := queue{i,5};
                 
                 queue{i,1} := auxTask{1}; 
                 queue{i,2} := auxTask{2}; 
                 queue{i,3} := auxTask{3};
                 queue{i,4} := auxTask{4};
+                queue{i,5} := auxTask{5};
             ENDIF
         ENDFOR
     ENDPROC
@@ -375,7 +382,7 @@ MODULE ObelixMov
         VAR num iOven;
         VAR num jOven;
         VAR bool found := FALSE;
-        VAR num newTask{4}; ![taskID, time, opt1, opt2]
+        VAR num newTask{5}; ![taskID, time, opt1, opt2, priority]
         
         VAR num currTime;
         
@@ -401,7 +408,7 @@ MODULE ObelixMov
                 conv2oven pConv, pOven, 1, iOven, jOven;
                 !generate a new task
                 currTime := GetTime(\Hour)*3600 + GetTime(\Min)*60 + GetTime(\Sec);
-                newTask := [2, currTime+time{queue{1,1}+(queue{1,3}-1)}, queue{1,3}, 3*(iOven-1)+jOven];
+                newTask := [2, currTime+time{queue{1,1}+(queue{1,3}-1)}, queue{1,3}, 3*(iOven-1)+jOven, taskPrior{queue{1,1}}];
                 
             CASE 2:
                 !PICK FROM OVEN & BRING TO MAN
@@ -418,14 +425,14 @@ MODULE ObelixMov
                 oven2man pOven, pMan, iOven, jOven;
                 !generate a new task
                 currTime := GetTime(\Hour)*3600 + GetTime(\Min)*60 + GetTime(\Sec);
-                newTask := [3, currTime+time{queue{1,1}+1}, queue{1,3}, 0];
+                newTask := [3, currTime+time{queue{1,1}+1}, queue{1,3}, 0, taskPrior{queue{1,1}}];
                 
             CASE 3:
                 !TAKE MOULD AND BRING TO CONVEYOR
                 !perform the task
                 man2conv pMan, pConv, 2;
                 !generate a new task
-                newTask := [0, 0, 0, 0];
+                newTask := [0, 0, 0, 0, taskPrior{queue{1,1}}];
                 
                 !Update chocolate counters
                 IF queue{1,3} = 1 THEN
@@ -444,17 +451,19 @@ MODULE ObelixMov
         
         !update the queue list comparing the completion times
 		FOR i FROM 2 TO Dim(queue, 1) DO
-			IF newTask{1} = 0 OR (queue{i,1} <> 0 AND queue{i,2} < newTask{2} + timeMov) THEN
+			IF newTask{1} = 0 OR (queue{i,1} <> 0 AND queue{i,2} < newTask{2} + priorDel * newTask{5} + timeMov) THEN
 				queue{i-1,1} := queue{i,1}; 
 				queue{i-1,2} := queue{i,2}; 
 				queue{i-1,3} := queue{i,3};
                 queue{i-1,4} := queue{i,4};
+                queue{i-1,5} := queue{i,5};
 			ELSE
 				!newTask completes before the queued task
 				queue{i-1,1} := newTask{1}; 
 				queue{i-1,2} := newTask{2}; 
 				queue{i-1,3} := newTask{3};
                 queue{i-1,4} := newTask{4};
+                queue{i-1,5} := newTask{5};
 				RETURN;!Break; There's no break :(
 			ENDIF
 		ENDFOR
