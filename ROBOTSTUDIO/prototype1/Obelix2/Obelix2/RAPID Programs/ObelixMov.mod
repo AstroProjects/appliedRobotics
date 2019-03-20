@@ -109,10 +109,6 @@ MODULE ObelixMov
             currTime := GetTime(\Hour)*3600 + GetTime(\Min)*60 + GetTime(\Sec);
             
             !do some movement
-            !************
-             place := checkPos();
-             updateDisp numChoc;
-            !*****************
             IF taskQueue{1,1} <> 0 AND taskQueue{1,2} - currTime < timeDelta THEN
                 performTask taskQueue, occOven, taskTimming, numChoc, pConv, pOven, pMan;
                 isHome := FALSE;
