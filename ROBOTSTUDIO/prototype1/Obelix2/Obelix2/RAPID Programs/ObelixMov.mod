@@ -103,7 +103,7 @@ MODULE ObelixMov
         
         ! 3. Reescale the task priority
         FOR i FROM 1 TO Dim(taskPrior,1) DO
-            taskPrior{i} := (taskPrior{i} - 0) * (10 - 0) / (10 - 0) + 10;
+            taskPrior{i} := (taskPrior{i} - 0) * (0 - 10) / (10 - 0) + 10;
         ENDFOR
         
         ! 3. Start the job
@@ -122,6 +122,7 @@ MODULE ObelixMov
             ENDIF
         ENDWHILE
         
+		updateDisp numChoc;
         
         ! TEST. Movement Tests
         !movTest pConv, pOven, pMan;
