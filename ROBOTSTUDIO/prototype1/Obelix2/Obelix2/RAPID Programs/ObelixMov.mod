@@ -109,6 +109,10 @@ MODULE ObelixMov
             currTime := GetTime(\Hour)*3600 + GetTime(\Min)*60 + GetTime(\Sec);
             
             !do some movement
+            !************
+             place := checkPos();
+             updateDisp numChoc;
+            !*****************
             IF taskQueue{1,1} <> 0 AND taskQueue{1,2} - currTime < timeDelta THEN
                 performTask taskQueue, occOven, taskTimming, numChoc, pConv, pOven, pMan;
                 isHome := FALSE;
@@ -251,6 +255,11 @@ MODULE ObelixMov
     
     !***********************************************************
     PROC oven2man(robtarget pOven{*,*,*}, robtarget pMan{*}, num iOven, num jOven)
+        !Check position
+        place := checkPos();
+        IF place = 1 OR place = 404 THEN 
+           MoveJ pHome, v1000, fine, tool0;
+        ENDIF
         
         MoveS [pOven{1, iOven, jOven}, pOven{2, iOven, jOven}], v1000, vSecurity, fine, tool0;
         
