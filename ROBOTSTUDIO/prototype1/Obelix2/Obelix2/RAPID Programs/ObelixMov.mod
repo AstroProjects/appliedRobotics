@@ -14,8 +14,8 @@ MODULE ObelixMov
     
     CONST robtarget pHome    :=[[507.9,-6.43,715.02],[0.697685,-0.00154316,0.716328,-0.0103435],[-1,-1,-1,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
 	CONST robtarget pConvRef :=[[-109.516885301,-504.792720334,376.620999376],[0.243054291,0.717735721,0.578717345,-0.301440343],[-2,0,-1,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
-	CONST robtarget pManRef  :=[[507.9,-6.43,715.02],[0.697685,-0.00154316,0.716328,-0.0103435],[-1,-1,-1,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
-	!CONST robtarget pManRef  :=[[580,42.299990184,552.739936658],[0.51893094,-0.131239024,0.843441139,-0.045760712],[-1,-1,-1,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
+	CONST robtarget pManRef  :=[[557.9,-6.43,715.02],[0.697685,-0.00154316,0.716328,-0.0103435],[-1,-1,-1,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
+    !CONST robtarget pManRef  :=[[507.9,-6.43,715.02],[0.697685,-0.00154316,0.716328,-0.0103435],[-1,-1,-1,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
     CONST robtarget pOvenRef :=[[-291.029880742,659.908842444,594.297264732],[0.363486279,-0.625201176,0.407577419,0.55756781],[1,0,-1,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
     
     CONST num convSecOffset{3} := [0, 0, -100];   !security offset [x, y, z]
@@ -37,7 +37,7 @@ MODULE ObelixMov
     ! |       0 | no task                                        |
     ! +---------+------------------------------------------------+
     
-    VAR num taskTimming{4} := [30, 30, 0, 5]; ! time in seconds to trigger next task
+    VAR num taskTimming{4} := [60, 120, 0, 5]; ! time in seconds to trigger next task
     VAR num taskPrior{4}   := [0, 6, 10, 0];
     VAR num timeDelta := 0; !delta between currTime and next Task
     VAR num priorDel := 20; !priority artificial time
@@ -80,12 +80,12 @@ MODULE ObelixMov
         MoveJ pHome, v1000, fine, tool0;
         !-----------------------------------
         
-        ! 0. Points definition
+		! 0. Points definition
         pMan := [pManRef, Offs(pManRef, manSecOffset{1}, manSecOffset{2}, manSecOffset{3})];
         defineConvPts pConvRef, convOffset, convSecOffset, pConv;
         defineOvenPts pOvenRef, ovenMatOffset, ovenSecOffset, pOven;
-        
-        ! 1. Job Configuration
+		
+		! 1. Job Configuration
         TPErase;
         TPWrite "Welcome to the chocolate factory";
         TPReadNum numChoc{2,1}, "How many chocolate 1 items will be produced?";
@@ -124,7 +124,7 @@ MODULE ObelixMov
         
         ! TEST. Movement Tests
         !movTest pConv, pOven, pMan;
-        
+		
         !-----------------------------------
         MoveJ pHome, v1000, fine, tool0;
     ENDPROC
@@ -322,6 +322,8 @@ MODULE ObelixMov
         
         VAR num currTime;
         
+        updateDisp numChoc;
+        
         TPWrite "A chocolate figure TYPE" \Num:=type;
         TPWrite "has arrived to the station";
         
@@ -359,8 +361,8 @@ MODULE ObelixMov
         TPWrite "   Produced = ", \Num := n{1,2};
         TPWrite "   Total = ", \Num := n{2,2};
 
-        TPWrite " Position = ", \Pos := pos1;
-        TPWrite " Position according to us = ", \Num := place;
+        !TPWrite " Position = ", \Pos := pos1;
+        !TPWrite " Position according to us = ", \Num := place;
     ENDPROC
     
     !***********************************************************
