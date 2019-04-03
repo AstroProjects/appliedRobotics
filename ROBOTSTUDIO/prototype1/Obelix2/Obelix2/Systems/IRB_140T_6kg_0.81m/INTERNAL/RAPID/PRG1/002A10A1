@@ -1,10 +1,10 @@
 MODULE ObelixMov
     !***********************************************************
     !
-    ! Module:  ObelixMov
+    ! Module:  ObelixMov_Pol
     !
     ! Description:
-    !   Move the robot
+    !   Move the robot and aply modifications. Now type 1 and 2 chocolates always arrive in pairs
     !
     ! Author: pol & victor
     !
@@ -88,6 +88,7 @@ MODULE ObelixMov
 		! 1. Job Configuration
         TPErase;
         TPWrite "Welcome to the chocolate factory";
+        !NUMBER OF TYPE 2 CHOCOLATE NOW IS THE SAME AS TYPE 1
         !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         TPReadNum numChoc{2,1}, "How many chocolate 1 and 2 items will be produced?";
         numChoc{2,2} := numChoc{2,1};
@@ -98,6 +99,7 @@ MODULE ObelixMov
         ! 2. Connect interrupts
         CONNECT pushInt1 WITH iMove1;
         ISignalDI sensor1,1,pushInt1;
+        !DIGITAL INPUT FOR TRIGGER 2 NOW IS THE SAME AS FOR THE TRIGGER 1 (sensor1)
         !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         CONNECT pushInt2 WITH iMove2;
         ISignalDI sensor1,1,pushInt2; !now it triggers with sensor 1
@@ -327,8 +329,9 @@ MODULE ObelixMov
         VAR num currTime;
         
         updateDisp numChoc;
+        !NOW WHEN SCREEN IS UPDATED SAYS THAT BOTH MOULDS HAVE ARRIVED
         !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        TPWrite "A pair of chocolate figuresTYPE 1, 2";
+        TPWrite "A pair of chocolate figures TYPE 1, 2";
         !\Num:=type;
         !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         TPWrite "has arrived to the station";
