@@ -1,0 +1,4 @@
+Pol Fontanes Molina modifications for Applied Robotics
+- Now when the sensor1 is triggered, TYPE 1 and TYPE 2 chocolate moulds arrive together, so the final number of TYPE 1 will be the same of TYPE 2.
+- Changes on the program apear between these comment marks !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+- On the line above the changes, written in comments appear a description of the change.
